@@ -1,0 +1,61 @@
+import json
+import ibm_boto3
+from ibm_botocore.client import Config
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+
+# Set your IBM Cloud API key
+api_key = "YOUR_API_KEY"
+
+# Set the resource group, location, and virtual server details
+resource_group = "YOUR_RESOURCE_GROUP"
+location = "YOUR_LOCATION"
+virtual_server_name = "YOUR_VIRTUAL_SERVER_NAME"
+
+# Create an IAM authenticator
+authenticator = IAMAuthenticator(api_key)
+
+# Create an IBM Cloud Infrastructure client
+client = ibm_boto3.client('VPC', authenticator=authenticator)
+
+# Backup the virtual server
+def create_backup(virtual_server_id, snapshot_name):
+    try:
+        snapshot = client.create_snapshot(
+            resource_group=resource_group,
+            location=location,
+            snapshot={
+                'name': snapshot_name,
+                'source_volume': {
+                    'id': virtual_server_id
+                }
+            }
+        ).get_result()
+        return snapshot
+    except Exception as e:
+        return None
+
+# Restore the virtual server from a snapshot
+def restore_from_snapshot(virtual_server_id, snapshot_id):
+    try:
+        client.restore_instance(
+            id=virtual_server_id,
+            type='revert',
+            source_snapshot={'id': snapshot_id}
+        )
+    except Exception as e:
+        return None
+
+# Usage example
+if __name__ == "__main__":
+    virtual_server_id = "YOUR_VIRTUAL_SERVER_ID"
+    snapshot_name = "backup_snapshot"
+
+    # Create a backup
+    snapshot = create_backup(virtual_server_id, snapshot_name)
+    if snapshot:
+        print("Snapshot created:", json.dumps(snapshot, indent=2))
+
+    # Restore from a snapshot
+    snapshot_id = "YOUR_SNAPSHOT_ID"
+    restore_from_snapshot(virtual_server_id, snapshot_id)
+
